@@ -1,6 +1,4 @@
-Description: HauNCT - Udacity DevOps Engineer Project 2.
-
-  EC2 Infrastructure - A script that creates the IAM Role, Security Groups, Load balancer and Autoscaling group 
+Description: HauNCT - Udagram - Udacity DevOps Engineer Project 2.
 
 Parameters:
   EnvironmentName:
@@ -96,7 +94,7 @@ Resources:
           systemctl start apache2.service
           cd /var/www/html
           sudo rm index.html
-          sudo aws s3 cp s3://udacity-demo-1/udacity.zip .
+          sudo aws s3 cp s3://udacity-demo-p2/udacity.zip .
           sudo unzip -o udacity.zip
           systemctl start apache2.service
       ImageId: ami-08fdec01f5df9998f
