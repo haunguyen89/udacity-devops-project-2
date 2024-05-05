@@ -23,7 +23,7 @@ In this project, you’ll deploy web servers for a highly available web app usin
 You can get started by cloning this repo in your local workspace:
 
 ```
-git clone git@github.com:udacity/-cd12352-Deploy-Infrastructure-as-Code-project.git
+git clone git@github.com:haunguyen89/udacity-devops-project-2.git
 ```
 
 ## Testing
