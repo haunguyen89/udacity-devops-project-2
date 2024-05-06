@@ -21,28 +21,37 @@ Parameters:
 
 Resources:
 #### IAM Role to be used by EC2 ###
-  EC2ReadOnlyS3Role:
+  IAMRole:
     Type: AWS::IAM::Role
     Properties:
-      ManagedPolicyArns:
-        - "arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess"
+      RoleName: !Ref ExerciseName
       AssumeRolePolicyDocument:
-        Version: "2012-10-17"
+        Version: '2012-10-17'
         Statement:
-          - Effect: "Allow"
-            Principal:
-              Service:
-                - ec2.amazonaws.com
-            Action:
-              - 'sts:AssumeRole'
-      Path: "/"
+        - Effect: 'Allow'
+          Principal:
+            Service:
+            - 'ec2.amazonaws.com'
+          Action:
+          - 'sts:AssumeRole'
+      Policies:
+        - PolicyName: s3
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+            - Effect: Allow
+              Action:
+              - 's3:PutObject'
+              - 's3:GetObject'
+              Resource:
+                - !GetAtt S3Bucket.Arn
 
   EC2InstanceProfile:
     Type: AWS::IAM::InstanceProfile
     Properties:
       Path: "/"
       Roles:
-        - !Ref EC2ReadOnlyS3Role
+        - !Ref IAMRole
 
 ### Security Group used for Load balancer ###
   LoadBalancerSecGroup:
@@ -85,7 +94,7 @@ Resources:
   LaunchConfig:
     Type: AWS::EC2::LaunchTemplate
     Properties:
-      LaunchTemplateName: !Sub "web-servers-template"
+      LaunchTemplateName: !Sub "${EnvironmentName}-web-servers"
       LaunchTemplateData:
         UserData:
           Fn::Base64: !Sub |
@@ -100,7 +109,8 @@ Resources:
             sudo unzip -o udacity.zip
             systemctl start apache2.service
         ImageId: ami-08fdec01f5df9998f
-        IamInstanceProfile: !Ref EC2InstanceProfile
+        IamInstanceProfile: 
+          Name: !Ref EC2InstanceProfile
         SecurityGroups:
         - Ref: WebServerSecGroup
         InstanceType: t3.medium
@@ -119,7 +129,7 @@ Resources:
             !Sub "${EnvironmentName}-PRIV-NETS"
       LaunchTemplate:
         LaunchTemplateId: !Ref LaunchConfig
-        Version: '3'
+        Version: "2024-05-06"
       HealthCheckGracePeriod: 60
       HealthCheckType: ELB
       TargetGroupARNs:
