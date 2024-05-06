@@ -7,9 +7,9 @@ The project included :
 ### Guide ###
 # Step1: Create S3 with name "udacity-demo-p2" and upload file udacity.zip
 
-# Step2: udagram-server udagram-network
+# Step2: Create stack udagram-network
+cd udacity-devops-project-2
+./create.sh udagram-network network.yml network-parameters.json aws-user-profile
 
-aws cloudformation create-stack  --stack-name udagram-network  --template-body file://network.yml  --parameters file://network-parameters.json  --region=us-east-1  --capabilities "CAPABILITY_IAM" "CAPABILITY_NAMED_IAM"
-
-# Step3: udagram-server udagram-server
-aws cloudformation create-stack  --stack-name udagram-server  --template-body file://udagram.yml  --parameters file://udagram-parameters.json  --region=us-east-1  --capabilities "CAPABILITY_IAM" "CAPABILITY_NAMED_IAM"
+# Step3: Create stack udagram-server
+./create.sh udagram-server udagram.yml udagram-parameters.json aws-user-profile

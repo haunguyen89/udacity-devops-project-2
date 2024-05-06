@@ -83,29 +83,31 @@ Resources:
 
 ### The EC2 Lauch config to be used by autoscaaling group ###
   LaunchConfig:
-    Type: AWS::AutoScaling::LaunchConfiguration
+    Type: AWS::EC2::LaunchTemplate
     Properties:
-      UserData:
-        Fn::Base64: !Sub |
-          #!/bin/bash
-          apt-get update -y
-          apt-get install unzip awscli -y
-          apt-get install apache2 -y
-          systemctl start apache2.service
-          cd /var/www/html
-          sudo rm index.html
-          sudo aws s3 cp s3://udacity-demo-p2/udacity.zip .
-          sudo unzip -o udacity.zip
-          systemctl start apache2.service
-      ImageId: ami-08fdec01f5df9998f
-      IamInstanceProfile: !Ref EC2InstanceProfile
-      SecurityGroups:
-      - Ref: WebServerSecGroup
-      InstanceType: t3.medium
-      BlockDeviceMappings:
-      - DeviceName: "/dev/sdk"
-        Ebs:
-          VolumeSize: !Ref HauNCTEBSVolumeSize
+      LaunchTemplateName: !Sub "web-servers-template"
+      LaunchTemplateData:
+        UserData:
+          Fn::Base64: !Sub |
+            #!/bin/bash
+            apt-get update -y
+            apt-get install unzip awscli -y
+            apt-get install apache2 -y
+            systemctl start apache2.service
+            cd /var/www/html
+            sudo rm index.html
+            sudo aws s3 cp s3://udacity-demo-p2/udacity.zip .
+            sudo unzip -o udacity.zip
+            systemctl start apache2.service
+        ImageId: ami-08fdec01f5df9998f
+        IamInstanceProfile: !Ref EC2InstanceProfile
+        SecurityGroups:
+        - Ref: WebServerSecGroup
+        InstanceType: t3.medium
+        BlockDeviceMappings:
+        - DeviceName: "/dev/sdk"
+          Ebs:
+            VolumeSize: !Ref HauNCTEBSVolumeSize
 # The auto scaling group responsible for creating EC2s/Instances
   WebServerGroup:
     Type: AWS::AutoScaling::AutoScalingGroup
@@ -115,8 +117,9 @@ Resources:
       VPCZoneIdentifier:
         - Fn::ImportValue: 
             !Sub "${EnvironmentName}-PRIV-NETS"
-      LaunchConfigurationName:
-        Ref: LaunchConfig
+      LaunchTemplate:
+        LaunchTemplateId: !Ref LaunchConfig
+        Version: '3'
       HealthCheckGracePeriod: 60
       HealthCheckType: ELB
       TargetGroupARNs:
