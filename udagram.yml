@@ -24,27 +24,18 @@ Resources:
   IAMRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: !Ref ExerciseName
+      ManagedPolicyArns:
+        - "arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess"
       AssumeRolePolicyDocument:
-        Version: '2012-10-17'
+        Version: "2012-10-17"
         Statement:
-        - Effect: 'Allow'
-          Principal:
-            Service:
-            - 'ec2.amazonaws.com'
-          Action:
-          - 'sts:AssumeRole'
-      Policies:
-        - PolicyName: s3
-          PolicyDocument:
-            Version: '2012-10-17'
-            Statement:
-            - Effect: Allow
-              Action:
-              - 's3:PutObject'
-              - 's3:GetObject'
-              Resource:
-                - !GetAtt S3Bucket.Arn
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - ec2.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Path: "/"
 
   EC2InstanceProfile:
     Type: AWS::IAM::InstanceProfile
@@ -110,7 +101,8 @@ Resources:
             systemctl start apache2.service
         ImageId: ami-08fdec01f5df9998f
         IamInstanceProfile: 
-          Name: !Ref EC2InstanceProfile
+          Arn:
+            Fn::Sub: "arn:aws:iam::074694946076:instance-profile/haunguyen"
         SecurityGroups:
         - Ref: WebServerSecGroup
         InstanceType: t3.medium
@@ -129,7 +121,7 @@ Resources:
             !Sub "${EnvironmentName}-PRIV-NETS"
       LaunchTemplate:
         LaunchTemplateId: !Ref LaunchConfig
-        Version: "2024-05-06"
+        Version: !GetAtt LaunchConfig.LatestVersionNumber
       HealthCheckGracePeriod: 60
       HealthCheckType: ELB
       TargetGroupARNs:
