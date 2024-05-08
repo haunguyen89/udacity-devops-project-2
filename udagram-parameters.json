@@ -1,10 +1,34 @@
 [
-	{
-        "ParameterKey":"EnvironmentName",
-        "ParameterValue":"UdacityProject2HauNCT"
+    {
+        "ParameterKey": "ProjectName",
+        "ParameterValue": "haunctp02"
     },
     {
-        "ParameterKey":"HauNCTEBSVolumeSize",
-        "ParameterValue": "10"
+        "ParameterKey": "S3BucketName",
+        "ParameterValue": "haunct-project-02"
+    },
+    {
+        "ParameterKey": "StaticSource",
+        "ParameterValue": "index.html"
+    },
+    {
+        "ParameterKey": "InstanceType",
+        "ParameterValue": "t2.medium"
+    },
+    {
+        "ParameterKey": "AMIId",
+        "ParameterValue": "ami-0263e4deb427da90e"
+    },
+    {
+        "ParameterKey": "VpcId",
+        "ParameterValue": ""
+    },
+    {
+        "ParameterKey": "PrivateSubnetIds",
+        "ParameterValue": "10.0.1.0/24"
+    },
+    {
+        "ParameterKey": "PublicSubnetIds",
+        "ParameterValue": "10.0.3.0/24"
     }
 ]

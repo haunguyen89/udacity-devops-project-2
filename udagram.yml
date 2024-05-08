@@ -1,182 +1,151 @@
 Description: HauNCT - Udagram - Udacity DevOps Engineer Project 2.
 
 Parameters:
-  EnvironmentName:
-    Description: An environment name that will be prefixed on every resources.
+  # Add your parameters here
+  ProjectName:
     Type: String
-
-  HauNCTEBSVolumeSize:
-    Description: The EBS volume size attached to an EC2 instance. 
-    Type: Number
-
-  MinEC2Servers:
-    Description: Please set the minimum number of server/ec2 instances
-    Type: Number
-    Default: 4
-
-  MaxEC2Servers:
-    Description: Please set the minimum number of server/ec2 instances
-    Type: Number
-    Default: 6
+    Default: haunctp02
+  VpcId:
+    Type: String
+  PrivateSubnetIds:
+    Type: String
+  PublicSubnetIds:
+    Type: String
+  AMIId:
+    Type: String
+    Default: ami-07caf09b362be10b8
+  InstanceType:
+    Type: String
+    Default: t2.medium
+  S3BucketName:
+    Type: String
+    Default: haunctp02
+  StaticSource:
+    Type: String
+    Default: index.html
 
 Resources:
-#### IAM Role to be used by EC2 ###
-  IAMRole:
-    Type: AWS::IAM::Role
-    Properties:
-      ManagedPolicyArns:
-        - "arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess"
-      AssumeRolePolicyDocument:
-        Version: "2012-10-17"
-        Statement:
-          - Effect: "Allow"
-            Principal:
-              Service:
-                - ec2.amazonaws.com
-            Action:
-              - 'sts:AssumeRole'
-      Path: "/"
-
-  EC2InstanceProfile:
-    Type: AWS::IAM::InstanceProfile
-    Properties:
-      Path: "/"
-      Roles:
-        - !Ref IAMRole
-
-### Security Group used for Load balancer ###
-  LoadBalancerSecGroup:
-    Type: AWS::EC2::SecurityGroup
-    Properties: 
-      GroupDescription: Allow http requests to the Load Balancer
-      VpcId: 
-        Fn::ImportValue:
-          !Sub "${EnvironmentName}-VPCID"
-      SecurityGroupIngress:
-      - IpProtocol: tcp
-        FromPort: 80
-        ToPort: 80
-        CidrIp: 0.0.0.0/0
-      SecurityGroupEgress:
-      - IpProtocol: tcp
-        FromPort: 80
-        ToPort: 80
-        CidrIp: 0.0.0.0/0
-#### Security group used for the web servers ###
-  WebServerSecGroup:
+  EC2SecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: Allow http & SSH requests to the Webservers
-      VpcId: 
-        Fn::ImportValue:
-          !Sub "${EnvironmentName}-VPCID"
-      SecurityGroupIngress:
-      - IpProtocol: tcp
-        FromPort: 80
-        ToPort: 80
-        CidrIp: 0.0.0.0/0
+      GroupDescription: Security group
+      GroupName: !Sub ${ProjectName}-SecurityGroup
+      VpcId: !Ref VpcId
       SecurityGroupEgress:
-      - IpProtocol: tcp
-        FromPort: 0
-        ToPort: 65535
-        CidrIp: 0.0.0.0/0
-
-### The EC2 Lauch config to be used by autoscaaling group ###
-  LaunchConfig:
+        - IpProtocol: "-1"
+          CidrIp: 0.0.0.0/0
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+        
+  ### The EC2 Lauch config to be used by autoscaaling group ###
+  WebAppLaunchConfig:
     Type: AWS::EC2::LaunchTemplate
     Properties:
-      LaunchTemplateName: !Sub "${EnvironmentName}-web-servers"
+      LaunchTemplateName: WebAppLaunchConfig
       LaunchTemplateData:
-        UserData:
-          Fn::Base64: !Sub |
-            #!/bin/bash
-            apt-get update -y
-            apt-get install unzip awscli -y
-            apt-get install apache2 -y
-            systemctl start apache2.service
-            cd /var/www/html
-            sudo rm index.html
-            sudo aws s3 cp s3://udacity-demo-p2/udacity.zip .
-            sudo unzip -o udacity.zip
-            systemctl start apache2.service
-        ImageId: ami-08fdec01f5df9998f
         IamInstanceProfile: 
-          Arn:
+          Arn: 
             Fn::Sub: "arn:aws:iam::074694946076:instance-profile/haunguyen"
-        SecurityGroups:
-        - Ref: WebServerSecGroup
-        InstanceType: t3.medium
+        ImageId: !Ref AMIId
+        InstanceType: !Ref InstanceType
+        SecurityGroupIds:
+          - !Ref EC2SecurityGroup
         BlockDeviceMappings:
-        - DeviceName: "/dev/sdk"
-          Ebs:
-            VolumeSize: !Ref HauNCTEBSVolumeSize
-# The auto scaling group responsible for creating EC2s/Instances
-  WebServerGroup:
+          - DeviceName: /dev/sda1
+            Ebs:
+              VolumeSize: '10'
+              VolumeType: gp2
+        UserData:
+          Fn::Base64:
+            !Sub |
+              #!/bin/bash
+              sudo su
+              apt update
+              sudo apt install apache2 -y
+              systemctl start apache2
+              systemctl enable apache2
+              snap install aws-cli --classic
+              cd /var/www/html
+              aws s3 cp s3://${S3BucketName}/index.html ./
+
+
+  AutoScalingGroup:
     Type: AWS::AutoScaling::AutoScalingGroup
     Properties:
-      MinSize: !Ref MinEC2Servers
-      MaxSize: !Ref MaxEC2Servers
-      VPCZoneIdentifier:
-        - Fn::ImportValue: 
-            !Sub "${EnvironmentName}-PRIV-NETS"
-      LaunchTemplate:
-        LaunchTemplateId: !Ref LaunchConfig
-        Version: !GetAtt LaunchConfig.LatestVersionNumber
-      HealthCheckGracePeriod: 60
-      HealthCheckType: ELB
+      AutoScalingGroupName: AutoScalingGroup
+      LaunchTemplate: 
+        LaunchTemplateId: !Ref WebAppLaunchConfig
+        Version: !GetAtt WebAppLaunchConfig.LatestVersionNumber
+      MaxSize: '4'
+      MinSize: '1'
+      DesiredCapacity: '2'
       TargetGroupARNs:
-        - Ref: WebServerTargetGroup
+        - !GetAtt WebAppTargetGroup.TargetGroupArn
+      VPCZoneIdentifier: !Split 
+        - ","
+        - !Ref PrivateSubnetIds
 
-# The target group of webservers to be used by the loadbalancer
-  WebServerTargetGroup:
-    Type: AWS::ElasticLoadBalancingV2::TargetGroup
-    Properties:
-      HealthCheckIntervalSeconds: 20
-      HealthCheckPath: /
-      HealthCheckProtocol: HTTP
-      HealthCheckTimeoutSeconds: 8
-      HealthyThresholdCount: 2
-      Port: 80
-      Protocol: HTTP
-      UnhealthyThresholdCount: 5
-      VpcId: 
-        Fn::ImportValue:
-          Fn::Sub: "${EnvironmentName}-VPCID"
-# The load balancer for the webservers
-  WebServerLoadBalancer:
+  WebAppLoadBalancer:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
     Properties:
-      Subnets:
-        - Fn::ImportValue: !Sub "${EnvironmentName}-PUB-NET1"
-        - Fn::ImportValue: !Sub "${EnvironmentName}-PUB-NET2"
+      IpAddressType: ipv4
+      Name: !Sub ${ProjectName}-WebAppLoadBalancer
+      Scheme: internet-facing
       SecurityGroups:
-        - Ref: LoadBalancerSecGroup
-# Load Balancer Listener
-  Listener:
+        - !Ref EC2SecurityGroup
+      Subnets: !Split 
+        - ","
+        - !Ref PublicSubnetIds
+      Type: application
+
+  WebAppTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Port: 80
+      Protocol: HTTP
+      TargetType: instance
+      VpcId: !Ref VpcId
+      HealthCheckEnabled: true
+
+  WebAppListener:
     Type: AWS::ElasticLoadBalancingV2::Listener
     Properties:
       DefaultActions:
-      - Type: forward
-        TargetGroupArn:
-          Ref: WebServerTargetGroup
-      LoadBalancerArn:
-        Ref: WebServerLoadBalancer
-      Port: '80'
-      Protocol: HTTP
-# The Listener Rule
-  ALBListenerRule:
-      Type: AWS::ElasticLoadBalancingV2::ListenerRule
-      Properties:
-        Actions:
         - Type: forward
-          TargetGroupArn: !Ref 'WebServerTargetGroup'
-        Conditions:
-        - Field: path-pattern
-          Values: [/]
-        ListenerArn: !Ref 'Listener'
-        Priority: 1
+          TargetGroupArn: !GetAtt WebAppTargetGroup.TargetGroupArn
+      LoadBalancerArn: !Ref WebAppLoadBalancer
+      Port: 80
+      Protocol: HTTP
 
-Outputs: 
-    LoadBalancerDnsName: 
-        Description: The DNS name for the Load balancer to the web servers.
-        Value: !Sub "http://${WebServerLoadBalancer.DNSName}"
+### Security Group used for Load balancer ###
+  WebAppSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group WebAppSecurityGroup
+      GroupName: !Sub ${ProjectName}-WebAppSecurityGroup
+      VpcId: !Ref VpcId
+      SecurityGroupEgress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+Outputs:
+  ALBUrl:
+    Value: !GetAtt WebAppLoadBalancer.DNSName
+    
