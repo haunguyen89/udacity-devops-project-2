@@ -1,0 +1,64 @@
+Parameters:
+
+  ProjectName:
+    Type: String
+    Default: haunctp02
+  VpcCidr:
+    Type: String
+    Default: 10.0.0.0/16
+  PrivateSubnetCidr1:
+    Type: String
+    Default: 10.0.1.0/24
+  PrivateSubnetCidr2:
+    Type: String
+    Default: 10.0.2.0/24
+  PublicSubnetCidr1:
+    Type: String
+    Default: 10.0.3.0/24
+  PublicSubnetCidr2:
+    Type: String
+    Default: 10.0.4.0/24
+
+  AMIId:
+    Type: String
+    Default: ami-07caf09b362be10b8
+  S3BucketName:
+    Type: String
+    Default: haunctp02
+  StaticSource:
+    Type: String
+    Default: index.html
+  InstanceType:
+    Type: String
+    Default: t2.medium
+
+Resources:
+  NetworkStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub https://${S3BucketName}.s3.amazonaws.com/network.yml
+      Parameters:
+        ProjectName: !Ref ProjectName
+        VpcCidr: !Ref VpcCidr
+        PrivateSubnetCidr1: !Ref PrivateSubnetCidr1
+        PrivateSubnetCidr2: !Ref PrivateSubnetCidr2
+        PublicSubnetCidr1: !Ref PublicSubnetCidr1
+        PublicSubnetCidr2: !Ref PublicSubnetCidr2
+      Tags:
+        - Key: ProjectName
+          Value: !Sub ${ProjectName}
+  ApplicationStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub https://${S3BucketName}.s3.amazonaws.com/udagram.yml
+      Parameters:
+        ProjectName: !Ref ProjectName
+        VpcId: !GetAtt NetworkStack.Outputs.VpcId
+        PrivateSubnetIds: !GetAtt NetworkStack.Outputs.PrivateSubnetIds
+        PublicSubnetIds: !GetAtt NetworkStack.Outputs.PublicSubnetIds
+        AMIId: !Ref AMIId
+        StaticSource: !Ref StaticSource
+        S3BucketName: !Ref S3BucketName
+      Tags:
+        - Key: ProjectName
+          Value: !Sub ${ProjectName}

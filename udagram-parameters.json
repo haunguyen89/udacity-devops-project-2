@@ -5,7 +5,7 @@
     },
     {
         "ParameterKey": "S3BucketName",
-        "ParameterValue": "haunct-project-02"
+        "ParameterValue": "haunctp02"
     },
     {
         "ParameterKey": "StaticSource",
@@ -20,15 +20,23 @@
         "ParameterValue": "ami-0263e4deb427da90e"
     },
     {
-        "ParameterKey": "VpcId",
-        "ParameterValue": ""
+        "ParameterKey": "VpcCidr",
+        "ParameterValue": "10.0.0.0/16"
     },
     {
-        "ParameterKey": "PrivateSubnetIds",
+        "ParameterKey": "PrivateSubnetCidr1",
         "ParameterValue": "10.0.1.0/24"
     },
     {
-        "ParameterKey": "PublicSubnetIds",
+        "ParameterKey": "PrivateSubnetCidr2",
+        "ParameterValue": "10.0.2.0/24"
+    },
+    {
+        "ParameterKey": "PublicSubnetCidr1",
         "ParameterValue": "10.0.3.0/24"
+    },
+    {
+        "ParameterKey": "PublicSubnetCidr2",
+        "ParameterValue": "10.0.4.0/24"
     }
 ]
