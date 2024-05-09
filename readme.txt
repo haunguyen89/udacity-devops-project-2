@@ -12,3 +12,10 @@ The project included :
 # Step3: Create stack udagram-network
 cd udacity-devops-project-2
 ./create.sh udagram-server main.yaml udagram-parameters.json aws-user-profile
+
+# Option: You can update or delete using below command
+# Update command
+./update.sh udagram-server main.yaml udagram-parameters.json aws-user-profile
+
+#Delete command
+./delete.sh udagram-server
